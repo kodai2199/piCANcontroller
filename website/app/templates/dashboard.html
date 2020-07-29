@@ -1,0 +1,126 @@
+{%extends "base.html" %} {% block body%}
+<div class="row">
+    {% if installations_count %}
+    {% for i in installations %}
+    <div class="col-lg px-5 py-4">
+        <div class="card shadow-lg p-3 border-dark text-left ml-3 mr-3">
+            <div class="card-body">
+                <h3 class="card-title">Impianto #{{i.id}}
+                    {% if i.online %}
+                        <span class="text-success">ONLINE</span>
+                    {% else %}
+                        <span class="text-danger">OFFLINE</span>
+                    {% endif %}
+                </h3>
+                <p class="card-text">
+                <table class="table table-borderless table-striped">
+                    <tr>
+                        <td>CPx Code:</td>
+                        <td><b>{{i.installation_code}}</b></td>
+                    </tr>
+                    <tr>
+                        <td>IMEI:</td>
+                        <td><b>{{i.imei}}</b></td>
+                    </tr>
+                    <tr>
+                        <td>Pressione in ingresso:</td>
+                        <td><b>{{i.inlet_pressure}} Bar</b></td>
+                    </tr>
+                    <tr>
+                        <td>Temperatura in ingresso:</td>
+                        <td><b>{{i.inlet_temperature}} °C</b></td>
+                    </tr>
+                    <tr>
+                        <td>Pressione in uscita:</td>
+                        <td><b>{{i.outlet_pressure}} Bar</b></td>
+                    </tr>
+                    <tr>
+                        <td>Tempo funzionamento totale:</td>
+                        <td><b>{{i.working_hours_counter}}h{{i.working_minutes_counter}}m</b></td>
+                    </tr>
+                    <tr>
+                        <td>Anti sgocciolamento:</td>
+                        <td>
+                            <b>
+                                {% if i.anti_drip %}
+                                <span class="text-success">ON</span>
+                                {% else %}
+                                <span class="text-danger">OFF</span>
+                                {% endif %}
+                            </b>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Limite di tempo giornaliero:</td>
+                        <td>
+                            <b>
+                                {% if i.time_limit %}
+                                <span class="text-danger">RAGGIUNTO</span>
+                                {% else %}
+                                <span class="text-success">NON RAGGIUNTO</span>
+                                {% endif %}
+                            </b>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Stato di allarme:</td>
+                        <td>
+                            <b>
+                                {% if i.alarm %}
+                                <span class="text-danger">IN ALLARME</span>
+                                {% else %}
+                                <span class="text-success">NESSUN ALLARME</span>
+                                {% endif %}
+                            </b>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Stato:</td>
+                        <td>
+                            <b>
+                                {% if i.run %}
+                                <span class="text-success">IN FUNZIONE</span></a>
+                                {% else %}
+                                <span class="text-danger">FERMO</span>
+                                {% endif %}
+                            </b>
+                        </td>
+                    </tr>
+                    {% if perms.app.can_see_advanced_info %}
+                    <tr>
+                        <td>Start code:</td>
+                        <td><b>{{i.start_code}}</b></td>
+                    </tr>
+                    {% endif %}
+                </table>
+                {% if i.run %}
+                {% if perms.app.can_see_advanced_info %}
+                <button type="submit" class="btn btn-danger btn-block">
+                    STOP
+                </button>
+                {% else %}
+                <button type="submit" class="btn btn-outline-danger btn-block" disabled>
+                    Accedi come amministratore per eseguire lo STOP
+                </button>
+                {% endif %}
+                {% else %}
+                <button type="submit" class="btn btn-success btn-block">
+                    RUN
+                </button>
+                {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="col-lg px-5 py-4">
+        <div class="card shadow-lg p-3 border-dark text-left ml-3 mr-3">
+            <div class="card-body">
+                <p class="card-text"><b>Nessun impianto configurato</b></p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
