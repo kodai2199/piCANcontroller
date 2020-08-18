@@ -47,4 +47,27 @@ class Installation(models.Model):
         # TODO: implement more informations
         return self.imei
 
-# A user model should be created as well
+
+class Command(models.Model):
+    """
+    This class defines a model for a Command. A Command
+    is a command string, each with its recipient's IMEI.
+    Commands are sent by views, after specific requests. (e.g. RUN)
+
+    Questa classe definisce un modello per un Comando.
+    Un Comando è una stringa di comando, ciacuno associato
+    all'IMEI del destinatario. I comandi sono inviati tramite
+    l'interfaccia web, in seguito a specifiche richieste (es. RUN)
+    """
+
+    """
+    Fields
+    """
+    # A single command can be sent to an IMEI at one time
+    imei = models.CharField(help_text="Recipient's IMEI", unique=True, max_length=255)
+    command_string = models.CharField(help_text="Command string", max_length=255)
+
+    def __str__(self):
+        # A human-readable form of a Command model
+        info = "For {}: {}".format(self.imei, self.command_string)
+        return info

@@ -10,39 +10,33 @@ import django
 
 class ConnectedClient:
 
-    COMMAND_ID = "WEB_SERVER"
-    COMMAND_END = "WEB_CLOSE"
-
-    def __init__(self, connection, address, queue):
+    def __init__(self, connection, address):
         # Prepare django
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings")
         django.setup()
-        from app.models import Installation
+        from app.models import Installation, Command
 
         # Initialize parameters
         self.connection = connection
         self.address = address
-        self.queue = queue
         self.id = None
         self.is_command_server = False
         self.Installation = Installation
+        self.Command = Command
 
         # Ask for identity
         if not self.identify():
             raise ConnectionError()
 
         # Run appropriate worker
-        if self.is_command_server:
-            self.command_server_worker()
-        else:
-            self.initialize_installation()
-            self.raspberry_pi_worker()
-            # If this point is reached, it means the RPi closed the
-            # connection. So the corresponding value must be set
-            # to "offline"
-            i = self.Installation.objects.get(imei=self.id)
-            i.online = False
-            i.save()
+        self.initialize_installation()
+        self.raspberry_pi_worker()
+        # If this point is reached, it means the RPi closed the
+        # connection. So the corresponding value must be set
+        # to "offline"
+        i = self.Installation.objects.get(imei=self.id)
+        i.online = False
+        i.save()
 
     def send(self, message):
         # Encode and send the message
@@ -89,7 +83,7 @@ class ConnectedClient:
 
         data = data[0]
         if not data or data is None:
-            print("{} closed the connection or did not provide and ID.".format(self.address))
+            print("{} closed the connection or did not send anything before timeout".format(self.address))
             raise ConnectionAbortedError()
         else:
             message = data.decode("UTF-8")
@@ -102,43 +96,12 @@ class ConnectedClient:
             self.send("ID_SUPPLICANT")
             # The client has up to two seconds to respond
             client_id = self.receive(2)
-            if client_id == self.COMMAND_ID:
-                self.is_command_server = True
-                print("{} is a Command Server.".format(self.address))
-            else:
-                print("{} is a Raspberry Pi.".format(self.address))
             self.id = client_id
+            print("{} is a Raspberry Pi with IMEI {}.".format(self.address, self.id))
         except ConnectionError:
             print("Could not identify {}.".format(self.address))
             return False
         return True
-
-    def command_server_worker(self):
-        # Django command server process
-        # If the client has been recognized to be a Command Server,
-        # we can now listen for the commands. A generous 5 seconds
-        # timeout is given. The connection can be closed after
-        # any amount of commands gracefully by sending <COMMAND_END>
-
-        # Commands
-        while True:
-            try:
-                # Get and decode the command
-                self.send("COMMAND_SUPPLICANT")
-                command_json = self.receive(5)
-                command = json.loads(command_json)
-
-                # Prepare the command to be sent on queue
-                recipient = command["recipient"]
-                message = command["command"]
-                command = (recipient, message)
-
-                print("Adding {} to the command queue".format(command))
-                # Put the command on the queue
-                self.queue.put(command)
-            except ConnectionError:
-                print("Command Server {} did not send any more commands.".format(self.address))
-                break
 
     def raspberry_pi_worker(self):
         # Raspberry process
@@ -162,16 +125,35 @@ class ConnectedClient:
                 #info = json.loads(info_json)
                 print(info_json)
             except ConnectionError:
-                print("RPi {} did not reply to GET_INFO.".format(self.address))
+                print("RPi {} did not reply to GET_INFO.".format(self.id))
                 break
-
-            # Phase b: check if the queue contains a command for this
-            # RPi and execute it
+            # Phase b: check if the database contains a command for
+            # this RPi and execute it
             try:
-                tasks = list(self.queue.queue.queue)
-                print("{} tasks scheduled.".format(len(list)))
+                matching_commands = self.Command.objects.filter(imei=self.id)
+                matching_commands_count = matching_commands.count()
+
+                # Command found
+                if matching_commands_count > 0:
+                    # Getting command
+                    matching_command = self.Command.objects.get(imei=self.id)
+                    print(matching_command.command_string)
+
+                    # Sending command
+                    self.send(matching_command.command_string)
+
+                    # Waiting for the reply
+                    # It may take some time for the raspberry Pi to
+                    # complete the command so more time will be left
+                    message = self.receive(10)
+                    if message == "OK":
+                        print("{} completed execution of {}".format(self.id, matching_command.command_string))
+                else:
+                    # If no commands are found, wait before checking
+                    # again
+                    time.sleep(1)
             except ConnectionError:
-                print("RPi {} did not receive the last command sent.".format(self.address))
+                print("RPi {} did not receive the last command sent or did not reply to it.".format(self.address))
                 break
 
     def initialize_installation(self):
