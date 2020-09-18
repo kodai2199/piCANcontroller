@@ -3,8 +3,6 @@ from threading import Thread
 import time
 import json
 import logging
-
-# TODO: logging
 import django
 
 

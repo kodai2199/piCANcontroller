@@ -75,7 +75,7 @@ class AppSocketServer:
         now = datetime.now()
         directory = Path("logs/")
         filename = now.strftime("%Y-%m-%d_%H-%M-%S")
-        filename += "_app.log"
+        filename += "_server.log"
         filename = directory/filename
         logging.basicConfig(level=logging.DEBUG, filename=filename, format="[%(asctime)s][%(levelname)s] %(message)s")
         logging.debug("Logger ready")
