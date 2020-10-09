@@ -4,13 +4,15 @@
     {% for i in installations %}
     <div class="col-lg px-5 py-4">
         <div class="card shadow-lg p-3 border-dark text-left ml-3 mr-3">
-            <div class="card-body">
+            <div class="card-body" id="{{i.imei}}">
                 <h3 class="card-title">Impianto #{{i.id}}
-                    {% if i.online %}
+                    <div style="display: inline" id="box_online">
+                        {% if i.online %}
                         <span class="text-success">ONLINE</span>
-                    {% else %}
+                        {% else %}
                         <span class="text-danger">OFFLINE</span>
-                    {% endif %}
+                        {% endif %}
+                    </div>
                 </h3>
                 <p class="card-text">
                 <table class="table table-borderless table-striped">
@@ -24,15 +26,27 @@
                     </tr>
                     <tr>
                         <td>Pressione in ingresso:</td>
-                        <td><b>{{i.inlet_pressure}} Bar</b></td>
+                        <td>
+                            <div class="box_inlet_pressure">
+                                <b>{{i.inlet_pressure}} Bar</b>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
                         <td>Temperatura in ingresso:</td>
-                        <td><b>{{i.inlet_temperature}} °C</b></td>
+                        <td>
+                            <div class="box_inlet_temperature">
+                                <b>{{i.inlet_temperature}} °C</b>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
                         <td>Pressione in uscita:</td>
-                        <td><b>{{i.outlet_pressure}} Bar</b></td>
+                        <td>
+                            <div class="box_outlet_pressure">
+                                <b>{{i.outlet_pressure}} Bar</b>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
                         <td>Tempo funzionamento totale:</td>
@@ -42,20 +56,36 @@
                         <td>Anti sgocciolamento:</td>
                         <td>
                             <b>
+                                <div class="box_anti_drip">
                                 {% if i.anti_drip %}
                                 <span class="text-success">ON</span>
                                 {% else %}
                                 <span class="text-danger">OFF</span>
                                 {% endif %}
+                                </div>
                             </b>
                         </td>
                     </tr>
                     <tr>
-                        <td>Limite di tempo giornaliero:</td>
+                        <td>Limite TL:</td>
                         <td>
                             <b>
-                                {% if i.time_limit %}
-                                <span class="text-danger">RAGGIUNTO</span>
+                                <div id="tl_service_form" class="hidden">
+                                    <input type="text" id="tl_service_code" placeholder="Codice di sblocco">
+                                    <button type="button" class="btn btn-primary tl service_send"
+                                            value="{{i.imei}}">
+                                        Invia
+                                    </button>
+                                </div>
+                                {% if i.tl_service %}
+                                <div id="tl_service_text">
+                                    <span class="text-danger">RAGGIUNTO</span>
+                                    {% if perms.app.can_see_advanced_info %}
+                                    <button type="button" class="btn btn-primary reset_button">
+                                        Reset
+                                    </button>
+                                    {% endif %}
+                                </div>
                                 {% else %}
                                 <span class="text-success">NON RAGGIUNTO</span>
                                 {% endif %}
@@ -63,14 +93,72 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Stato di allarme:</td>
+                        <td>Limite BK:</td>
                         <td>
                             <b>
-                                {% if i.alarm %}
-                                <span class="text-danger">IN ALLARME</span>
+                                <div id="bk_service_form" class="hidden">
+                                    <input type="text" id="bk_service_code" placeholder="Codice di sblocco">
+                                    <button type="button" class="btn btn-primary bk service_send"
+                                            value="{{i.imei}}">
+                                        Invia
+                                    </button>
+                                </div>
+                                {% if i.bk_service %}
+                                <div id="bk_service_text">
+                                    <span class="text-danger">RAGGIUNTO</span>
+                                    {% if perms.app.can_see_advanced_info %}
+                                    <button type="button" class="btn btn-primary reset_button">
+                                        Reset
+                                    </button>
+                                    {% endif %}
+                                </div>
                                 {% else %}
-                                <span class="text-success">NESSUN ALLARME</span>
+                                <span class="text-success">NON RAGGIUNTO</span>
                                 {% endif %}
+                            </b>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Limite RB:</td>
+                        <td>
+                            <b>
+                                <div id="rb_service_form" class="hidden">
+                                    <input type="text" id="rb_service_code" placeholder="Codice di sblocco">
+                                    <button type="button" class="btn btn-primary rb service_send"
+                                            value="{{i.imei}}">
+                                        Invia
+                                    </button>
+                                </div>
+                                {% if i.rb_service %}
+                                <div id="rb_service_text">
+                                    <span class="text-danger">RAGGIUNTO</span>
+                                    {% if perms.app.can_see_advanced_info %}
+                                        <button type="button" class="btn btn-primary reset_button">
+                                            Reset
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <span class="text-success">NON RAGGIUNTO</span>
+                                {% endif %}
+                            </b>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ID nodi in allarme:</td>
+                        <td>
+                            <b>
+                               <div class="box_alarms">
+                               {% for key, value in alarms_strings.items %}
+                                    {% if key == i.id %}
+                                        {% if value == "NESSUNO" %}
+                                        <span class="text-success">NESSUNO</span>
+                                        {% else %}
+                                        <span class="text-danger">{{value}}</span>
+                                        {% endif %}
+                                    {% endif %}
+                               {% endfor %}
+                               </div>
                             </b>
                         </td>
                     </tr>
@@ -78,11 +166,13 @@
                         <td>Stato:</td>
                         <td>
                             <b>
-                                {% if i.run %}
-                                <span class="text-success">IN FUNZIONE</span></a>
-                                {% else %}
-                                <span class="text-danger">FERMO</span>
-                                {% endif %}
+                                <div class="box_state">
+                                    {% if i.run %}
+                                    <span class="text-success">IN FUNZIONE</span></a>
+                                    {% else %}
+                                    <span class="text-danger">FERMO</span>
+                                    {% endif %}
+                                </div>
                             </b>
                         </td>
                     </tr>
@@ -94,19 +184,13 @@
                     {% endif %}
                 </table>
                 {% if i.run %}
-                {% if perms.app.can_see_advanced_info %}
-                <button type="submit" class="btn btn-danger btn-block">
-                    STOP
-                </button>
+                    <button class="btn btn-danger btn-block stopb" value="{{i.imei}}" type="submit">
+                        STOP
+                    </button>
                 {% else %}
-                <button type="submit" class="btn btn-outline-danger btn-block" disabled>
-                    Accedi come amministratore per eseguire lo STOP
-                </button>
-                {% endif %}
-                {% else %}
-                <button type="submit" class="btn btn-success btn-block">
-                    RUN
-                </button>
+                    <button class="btn btn-success btn-block runb" value="{{i.imei}}" type="submit">
+                        RUN
+                    </button>
                 {% endif %}
                 </p>
             </div>
@@ -123,4 +207,81 @@
     </div>
     {% endif %}
 </div>
+{% load static %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+    $('.runb').click(function(){
+    var imei;
+    imei = $(this).val();
+    $(this).prop("disabled", true);
+    $.ajax(
+    {
+        type:"POST",
+        url: "installations/toggle",
+        data:{
+             'imei': imei,
+             'command': 'run',
+             'csrfmiddlewaretoken': '{{ csrf_token }}',
+        },
+        success: function( data )
+        {
+            console.log(data)
+        }
+    }).done(function(){
+        $(this).prop("disabled", false);
+    });
+});
+
+$('.stopb').click(function(){
+    var imei;
+    imei = $(this).val();
+    $(this).prop("disabled", true);
+    $.ajax(
+    {
+        type:"POST",
+        url: "installations/toggle",
+        data:{
+             'imei': imei,
+             'command': 'stop',
+             'csrfmiddlewaretoken': '{{ csrf_token }}',
+        },
+        success: function( data )
+        {
+
+        }
+    }).done(function(){
+        $(this).prop("disabled", false);
+    });
+});
+
+$('.service_send').click(function(){
+    var imei = $(this).val();
+    var classes = $(this).prop("classList");
+    var type = "";
+    ìf classes.indexOf(" tl ") != -1
+        type = "tl";
+    else if classes.indexOf(" bk ") != -1
+        type = "bk"
+    else if classes.indexOf(" rb ") != -1
+        type = "rb"
+    $(this).prop("disabled", true);
+    $.ajax(
+    {
+        type:"POST",
+        url: "installations/reset_time_limit",
+        data:{
+             'imei': imei,
+             'command': 'reset',
+             'type': type,
+             'csrfmiddlewaretoken': '{{ csrf_token }}',
+        },
+        success: function( data )
+        {
+
+        }
+    }).done(function(){
+        $(this).prop("disabled", false);
+    });
+});
+</script>
 {% endblock %}

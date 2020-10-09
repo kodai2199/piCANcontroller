@@ -32,3 +32,7 @@
         column-count: 5;
     }
 }
+
+.hidden{
+    display: none;
+}

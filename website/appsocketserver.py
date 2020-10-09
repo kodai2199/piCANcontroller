@@ -8,6 +8,7 @@ from server.connectedclient import ConnectedClient
 import os
 import django
 
+
 class AppSocketServer:
     """
     Terminology:
@@ -53,7 +54,7 @@ class AppSocketServer:
     This is implemented with the help of ConnectedClient
     """
 
-    HOST = "127.0.0.1"
+    HOST = ""
     PORT = 37863
 
     def __init__(self, host=None, port=None):

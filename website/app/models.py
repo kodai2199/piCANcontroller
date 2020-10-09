@@ -21,10 +21,10 @@ class Installation(models.Model):
     working_hours_counter = models.IntegerField(help_text="Total working hours", null=True, blank=True, default=0)
     working_minutes_counter = models.IntegerField(help_text="Working minutes", null=True, blank=True, default=0)
     anti_drip = models.BooleanField(help_text="Anti-drip", default=False)
-    time_limit = models.BooleanField(help_text="Daily time limit reached", default=False)
     start_code = models.CharField(help_text="Start code", null=True, blank=True, max_length=255, default="0x0000")
-    alarm = models.BooleanField(help_text="Alarm state", default=False)
-
+    alarms = models.CharField(help_text="JSON containing CANbus IDs of the nodes in an alarm state", default="[]",
+                              null=False, max_length=255)
+    speed = models.IntegerField(help_text="Speed (rpm)", default=0, null=False)
     # Meaning not yet sure...
     bk_service = models.BooleanField(help_text="Backup service", default=False)
     tl_service = models.BooleanField(help_text="Time limit service", default=False)
@@ -65,7 +65,7 @@ class Command(models.Model):
     """
     # A single command can be sent to an IMEI at one time
     imei = models.CharField(help_text="Recipient's IMEI", unique=True, max_length=255)
-    command_string = models.CharField(help_text="Command string", max_length=255)
+    command_string = models.CharField(help_text="Command string", max_length=255, null=False, blank=False)
 
     def __str__(self):
         # A human-readable form of a Command model

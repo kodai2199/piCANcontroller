@@ -1,9 +1,10 @@
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.views import LoginView
-from .models import Installation
-from django.views import generic
+import json
+from .models import Installation, Command
+
 
 
 @login_required
@@ -14,12 +15,63 @@ def dashboard(request):
     # Loads the list of installations
     installations = Installation.objects.all()
 
+    # Parse the alarms dictionary for every installation,
+    # and just give an output string. This will make the
+    # dashboard.html template much easier to understand
+    alarms_strings = {}
+    for i in installations:
+        alarms = json.loads(i.alarms)
+        counter = 0
+        alarms_strings[i.id] = ""
+        for alarm_id in alarms:
+            counter += 1
+            if counter != 1:
+                alarms_strings[i.id] += " ,"
+            alarms_strings[i.id] += f"#{alarm_id}"
+        if counter == 0:
+            alarms_strings[i.id] += "NESSUNO"
+
     context = {
         'installations': installations,
+        'alarms_strings': alarms_strings,
         'installations_count': installations.count(),
     }
 
-    # TODO: check if the installation is online or offline!!!
     return render(request, 'dashboard.html', context=context)
 
+@login_required
+def toggle_installation(request):
+    # Authentication is required to send a command
+    if request.user.is_authenticated and request.method == "POST":
+        imei = request.POST.get("imei", '')
+        command = request.POST.get("command", '')
+        command_queue = Command.objects.filter(imei=imei)
+        if command_queue.count() >= 1:
+            return HttpResponse('There already is a command being executed for this installation.')
 
+        if command == "run":
+            c = Command(imei=imei, command_string="RUN")
+            c.save()
+            print("RUN command sent to installation with imei {}".format(imei))
+            return HttpResponse('success')
+        elif command == "stop":
+            c = Command(imei=imei, command_string="STOP")
+            c.save()
+            print("STOP command sent to installation with imei {}".format(imei))
+            return HttpResponse('success')
+        else:
+            return HttpResponse('Invalid command')
+    else:
+        return HttpResponse('You need to login and use a correct syntax to send commands.')
+
+@login_required
+def reset_time_limit(request):
+    # Authentication is required to send a command
+    if request.user.is_authenticated and request.method == "POST":
+    pass
+
+@login_required
+def command_pending_for_installation(request):
+    # Authentication is required to send a command
+    if request.user.is_authenticated and request.method == "POST":
+        imei = request.POST.get("imei", '')
