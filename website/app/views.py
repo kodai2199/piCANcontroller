@@ -48,7 +48,6 @@ def toggle_installation(request):
         command_queue = Command.objects.filter(imei=imei)
         if command_queue.count() >= 1:
             return HttpResponse('There already is a command being executed for this installation.')
-
         if command == "run":
             c = Command(imei=imei, command_string="RUN")
             c.save()
@@ -68,7 +67,30 @@ def toggle_installation(request):
 def reset_time_limit(request):
     # Authentication is required to send a command
     if request.user.is_authenticated and request.method == "POST":
-    pass
+        # check that the user is an administrator
+        if request.user.groups.filter(name="admin").exists():
+            imei = request.POST.get("imei", '')
+            code = request.POST.get("code", '')
+            field_type = request.POST.get("field_type", '')
+            command_queue = Command.objects.filter(imei=imei)
+            if command_queue.count() >= 1:
+                return HttpResponse('There already is a command being executed for this installation.')
+            if field_type == "tl" and code == "reset_time_limit":
+                c = Command(imei=imei, command_string="RESET_TL")
+                c.save()
+                return HttpResponse('success')
+            elif field_type == "bk" and code == "reset_backup":
+                c = Command(imei=imei, command_string="RESET_BK")
+                c.save()
+                return HttpResponse('success')
+            elif field_type == "rb" and code == "reset_whatever":
+                c = Command(imei=imei, command_string="RESET_RB")
+                c.save()
+                return HttpResponse('success')
+            else:
+                return HttpResponse('Invalid command')
+        else:
+            return HttpResponse('Insufficient permissions')
 
 @login_required
 def command_pending_for_installation(request):

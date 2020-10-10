@@ -256,14 +256,17 @@ $('.stopb').click(function(){
 
 $('.service_send').click(function(){
     var imei = $(this).val();
+    var code = $(this).siblings()[0].val();
+    $(this).siblings()[0].val("");
+    console.log(code);
     var classes = $(this).prop("classList");
-    var type = "";
+    var field_type = "";
     ìf classes.indexOf(" tl ") != -1
-        type = "tl";
+        field_type = "tl";
     else if classes.indexOf(" bk ") != -1
-        type = "bk"
+        field_type = "bk"
     else if classes.indexOf(" rb ") != -1
-        type = "rb"
+        field_type = "rb"
     $(this).prop("disabled", true);
     $.ajax(
     {
@@ -271,8 +274,8 @@ $('.service_send').click(function(){
         url: "installations/reset_time_limit",
         data:{
              'imei': imei,
-             'command': 'reset',
-             'type': type,
+             'code': code,
+             'field_type': type,
              'csrfmiddlewaretoken': '{{ csrf_token }}',
         },
         success: function( data )

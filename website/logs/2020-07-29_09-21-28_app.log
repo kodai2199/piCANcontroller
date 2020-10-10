@@ -1,4 +1,0 @@
-[2020-07-29 09:21:28,841][DEBUG] Logger ready
-[2020-07-29 09:21:28,845][DEBUG] Socket server listening for a new connection
-[2020-07-29 09:21:30,713][INFO] New connection from ('127.0.0.1', 51021). Launching process.
-[2020-07-29 09:21:30,721][DEBUG] Socket server listening for a new connection
