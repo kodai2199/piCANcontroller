@@ -210,8 +210,9 @@
 {% load static %}
 <script src="{% static 'js/dashboard.js' %}"></script>
 <script>
-    $('.runb').click(function(){
-    var imei;
+
+$('.runb').click(function(){
+    let imei;
     imei = $(this).val();
     $(this).prop("disabled", true);
     $.ajax(
@@ -227,13 +228,11 @@
         {
             console.log(data)
         }
-    }).done(function(){
-        $(this).prop("disabled", false);
     });
 });
 
 $('.stopb').click(function(){
-    var imei;
+    let imei;
     imei = $(this).val();
     $(this).prop("disabled", true);
     $.ajax(
@@ -249,23 +248,21 @@ $('.stopb').click(function(){
         {
 
         }
-    }).done(function(){
-        $(this).prop("disabled", false);
     });
 });
 
 $('.service_send').click(function(){
-    var imei = $(this).val();
-    var code = $(this).siblings()[0].val();
+    const imei = $(this).val();
+    const code = $(this).siblings()[0].val();
     $(this).siblings()[0].val("");
     console.log(code);
-    var classes = $(this).prop("classList");
-    var field_type = "";
-    ìf classes.indexOf(" tl ") != -1
+    let classes = $(this).prop("classList");
+    let field_type = "";
+    if (classes.indexOf(" tl ") !== -1)
         field_type = "tl";
-    else if classes.indexOf(" bk ") != -1
+    else if (classes.indexOf(" bk ") !== -1)
         field_type = "bk"
-    else if classes.indexOf(" rb ") != -1
+    else if (classes.indexOf(" rb ") !== -1)
         field_type = "rb"
     $(this).prop("disabled", true);
     $.ajax(
@@ -275,16 +272,40 @@ $('.service_send').click(function(){
         data:{
              'imei': imei,
              'code': code,
-             'field_type': type,
+             'field_type': field_type,
              'csrfmiddlewaretoken': '{{ csrf_token }}',
         },
         success: function( data )
         {
 
         }
-    }).done(function(){
-        $(this).prop("disabled", false);
     });
 });
+
+function enable_buttons(){
+
+
+}
+
+function update_data(){
+    $.ajax(
+    {
+        type:"POST",
+        url: "installations/update_data",
+        data:{
+             'csrfmiddlewaretoken': '{{ csrf_token }}',
+        },
+        success: function( data )
+        {
+            const installations = JSON.parse(data)
+            for (const installation in installations) {
+
+            }
+        }
+    })
+    enable_buttons()
+}
+
+setInterval(update_data, 1500);
 </script>
 {% endblock %}

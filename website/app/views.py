@@ -3,18 +3,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.decorators import login_required
 import json
+from django.core import serializers
 from .models import Installation, Command
 
 
-
-@login_required
-def dashboard(request):
-    if not request.user.is_authenticated:
-        return redirect('login')
-
-    # Loads the list of installations
-    installations = Installation.objects.all()
-
+def parse_alarms(installations):
     # Parse the alarms dictionary for every installation,
     # and just give an output string. This will make the
     # dashboard.html template much easier to understand
@@ -30,7 +23,18 @@ def dashboard(request):
             alarms_strings[i.id] += f"#{alarm_id}"
         if counter == 0:
             alarms_strings[i.id] += "NESSUNO"
+    return alarms_strings
 
+@login_required
+def dashboard(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    # Loads the list of installations
+    installations = Installation.objects.all()
+    alarms_strings = parse_alarms(installations)
+
+    # TODO pending commands block further actions on the same installations
     context = {
         'installations': installations,
         'alarms_strings': alarms_strings,
@@ -38,6 +42,7 @@ def dashboard(request):
     }
 
     return render(request, 'dashboard.html', context=context)
+
 
 @login_required
 def toggle_installation(request):
@@ -62,6 +67,7 @@ def toggle_installation(request):
             return HttpResponse('Invalid command')
     else:
         return HttpResponse('You need to login and use a correct syntax to send commands.')
+
 
 @login_required
 def reset_time_limit(request):
@@ -92,8 +98,12 @@ def reset_time_limit(request):
         else:
             return HttpResponse('Insufficient permissions')
 
+
 @login_required
-def command_pending_for_installation(request):
+def update_data(request):
     # Authentication is required to send a command
     if request.user.is_authenticated and request.method == "POST":
-        imei = request.POST.get("imei", '')
+        installations = Installation.objects.all()
+        alarms_strings = parse_alarms(installations)
+        installations_json = serializers.serialize("json", installations)
+        return HttpResponse(installations_json, content_type='application/json')
