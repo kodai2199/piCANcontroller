@@ -6,7 +6,7 @@
         <div class="card shadow-lg p-3 border-dark text-left ml-3 mr-3">
             <div class="card-body" id="{{i.imei}}">
                 <h3 class="card-title">Impianto #{{i.id}}
-                    <div style="display: inline" id="box_online">
+                    <div style="display: inline" class="box_online">
                         {% if i.online %}
                         <span class="text-success">ONLINE</span>
                         {% else %}
@@ -49,8 +49,32 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Tempo funzionamento totale:</td>
-                        <td><b>{{i.working_hours_counter}}h{{i.working_minutes_counter}}m</b></td>
+                        <td>Obiettivo pressione in uscita:</td>
+                        <td>
+                            <div class="box_outlet_pressure_target">
+                                {% if perms.app.can_see_advanced_info %}
+                                    <b><input type="number" value="{{i.outlet_pressure_target}}"
+                                              placeholder="Pressione d'uscita obiettivo" style="width: 80px"
+                                              class="outlet_pressure_send_input"/>
+                                        Bar
+                                    <button type="button" class="btn btn-primary outlet_pressure_send"
+                                                value="{{i.imei}}">
+                                            Invia
+                                    </button>
+                                    </b>
+                                {% else %}
+                                    <b>{{i.outlet_pressure_target}} Bar</b>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Tempo funzionamento dall'ultimo reset BK:</td>
+                        <td>
+                            <div class="box_work_time">
+                                <b>{{i.working_hours_counter}}h{{i.working_minutes_counter}}m</b>
+                            </div>
+                        </td>
                     </tr>
                     <tr>
                         <td>Anti sgocciolamento:</td>
@@ -58,9 +82,9 @@
                             <b>
                                 <div class="box_anti_drip">
                                 {% if i.anti_drip %}
-                                <span class="text-success">ON</span>
+                                <span class="text-danger">ON</span>
                                 {% else %}
-                                <span class="text-danger">OFF</span>
+                                <span class="text-success">OFF</span>
                                 {% endif %}
                                 </div>
                             </b>
@@ -70,25 +94,33 @@
                         <td>Limite TL:</td>
                         <td>
                             <b>
-                                <div id="tl_service_form" class="hidden">
-                                    <input type="text" id="tl_service_code" placeholder="Codice di sblocco">
-                                    <button type="button" class="btn btn-primary tl service_send"
-                                            value="{{i.imei}}">
-                                        Invia
-                                    </button>
+                                <div class="tl_service">
+                                    <div class="tl_service_form hidden">
+                                        <input type="text" class="tl_service_code" placeholder="Codice di sblocco">
+                                        <button type="button" class="btn btn-primary tl service_send"
+                                                value="{{i.imei}}">
+                                            Invia
+                                        </button>
+                                    </div>
+
+                                    <div class="tl_service_text_button">
+                                        <div class="tl_service_text inline">
+                                            {% if i.tl_service %}
+                                                <span class="text-danger">RAGGIUNTO</span>
+                                            {% else %}
+                                                <span class="text-success">NON RAGGIUNTO</span>
+                                            {% endif %}
+                                        </div>
+
+                                        {% if perms.app.can_see_advanced_info %}
+                                            {% if i.tl_service %}
+                                                <button type="button" class="btn btn-primary reset_button">
+                                                    Reset
+                                                </button>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                {% if i.tl_service %}
-                                <div id="tl_service_text">
-                                    <span class="text-danger">RAGGIUNTO</span>
-                                    {% if perms.app.can_see_advanced_info %}
-                                    <button type="button" class="btn btn-primary reset_button">
-                                        Reset
-                                    </button>
-                                    {% endif %}
-                                </div>
-                                {% else %}
-                                <span class="text-success">NON RAGGIUNTO</span>
-                                {% endif %}
                             </b>
                         </td>
                     </tr>
@@ -96,25 +128,32 @@
                         <td>Limite BK:</td>
                         <td>
                             <b>
-                                <div id="bk_service_form" class="hidden">
-                                    <input type="text" id="bk_service_code" placeholder="Codice di sblocco">
-                                    <button type="button" class="btn btn-primary bk service_send"
-                                            value="{{i.imei}}">
-                                        Invia
-                                    </button>
+                                <div class="bk_service">
+                                    <div class="bk_service_form hidden">
+                                        <input type="text" class="bk_service_code" placeholder="Codice di sblocco">
+                                        <button type="button" class="btn btn-primary bk service_send"
+                                                value="{{i.imei}}">
+                                            Invia
+                                        </button>
+                                    </div>
+
+                                    <div class="bk_service_text_button">
+                                        <div class="bk_service_text inline">
+                                            {% if i.bk_service %}
+                                                <span class="text-danger">RAGGIUNTO</span>
+                                            {% else %}
+                                                <span class="text-success">NON RAGGIUNTO</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if perms.app.can_see_advanced_info %}
+                                           {% if i.bk_service %}
+                                                <button type="button" class="btn btn-primary reset_button">
+                                                   Reset
+                                                </button>
+                                           {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                {% if i.bk_service %}
-                                <div id="bk_service_text">
-                                    <span class="text-danger">RAGGIUNTO</span>
-                                    {% if perms.app.can_see_advanced_info %}
-                                    <button type="button" class="btn btn-primary reset_button">
-                                        Reset
-                                    </button>
-                                    {% endif %}
-                                </div>
-                                {% else %}
-                                <span class="text-success">NON RAGGIUNTO</span>
-                                {% endif %}
                             </b>
                         </td>
                     </tr>
@@ -122,25 +161,36 @@
                         <td>Limite RB:</td>
                         <td>
                             <b>
-                                <div id="rb_service_form" class="hidden">
-                                    <input type="text" id="rb_service_code" placeholder="Codice di sblocco">
-                                    <button type="button" class="btn btn-primary rb service_send"
-                                            value="{{i.imei}}">
-                                        Invia
-                                    </button>
-                                </div>
-                                {% if i.rb_service %}
-                                <div id="rb_service_text">
-                                    <span class="text-danger">RAGGIUNTO</span>
-                                    {% if perms.app.can_see_advanced_info %}
-                                        <button type="button" class="btn btn-primary reset_button">
-                                            Reset
+                                <div class="rb_service">
+                                    <div class="rb_service_form hidden">
+                                        <input type="text" class="rb_service_code" placeholder="Codice di sblocco">
+                                        <button type="button" class="btn btn-primary rb service_send"
+                                                value="{{i.imei}}">
+                                            Invia
                                         </button>
-                                    {% endif %}
+                                    </div>
+
+                                    <div class="rb_service_text_button">
+                                        <div class="rb_service_text inline">
+                                            {% if i.rb_service %}
+                                                <span class="text-danger">RAGGIUNTO</span>
+                                            {% else %}
+                                                <span class="text-success">NON RAGGIUNTO</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if perms.app.can_see_advanced_info %}
+                                            {% if i.rb_service %}
+                                                <button type="button" class="btn btn-primary reset_button">
+                                                    Reset
+                                                </button>
+                                            {% else %}
+                                                <button type="button" class="btn btn-primary reset_button hidden">
+                                                    Reset
+                                                </button>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                {% else %}
-                                <span class="text-success">NON RAGGIUNTO</span>
-                                {% endif %}
                             </b>
                         </td>
                     </tr>
@@ -167,8 +217,8 @@
                         <td>
                             <b>
                                 <div class="box_state">
-                                    {% if i.run %}
-                                    <span class="text-success">IN FUNZIONE</span></a>
+                                    {% if i.running %}
+                                    <span class="text-success">IN FUNZIONE</span>
                                     {% else %}
                                     <span class="text-danger">FERMO</span>
                                     {% endif %}
@@ -184,11 +234,11 @@
                     {% endif %}
                 </table>
                 {% if i.run %}
-                    <button class="btn btn-danger btn-block stopb" value="{{i.imei}}" type="submit">
+                    <button class="btn btn-danger btn-block pump_start stopb" value="{{i.imei}}" type="submit">
                         STOP
                     </button>
                 {% else %}
-                    <button class="btn btn-success btn-block runb" value="{{i.imei}}" type="submit">
+                    <button class="btn btn-success btn-block pump_start runb" value="{{i.imei}}" type="submit">
                         RUN
                     </button>
                 {% endif %}
@@ -211,58 +261,40 @@
 <script src="{% static 'js/dashboard.js' %}"></script>
 <script>
 
-$('.runb').click(function(){
+$('.pump_start').click(function(){
     let imei;
     imei = $(this).val();
     $(this).prop("disabled", true);
+    let classes = $(this).prop("classList");
+    let command = ''
+    if (classes["value"].indexOf("stopb") !== -1)
+        command = 'stop'
+    else if (classes["value"].indexOf("runb") !== -1)
+        command = 'run';
     $.ajax(
     {
         type:"POST",
         url: "installations/toggle",
         data:{
              'imei': imei,
-             'command': 'run',
+             'command': command,
              'csrfmiddlewaretoken': '{{ csrf_token }}',
-        },
-        success: function( data )
-        {
-            console.log(data)
         }
     });
 });
 
-$('.stopb').click(function(){
-    let imei;
-    imei = $(this).val();
-    $(this).prop("disabled", true);
-    $.ajax(
-    {
-        type:"POST",
-        url: "installations/toggle",
-        data:{
-             'imei': imei,
-             'command': 'stop',
-             'csrfmiddlewaretoken': '{{ csrf_token }}',
-        },
-        success: function( data )
-        {
-
-        }
-    });
-});
-
+{% if perms.app.can_see_advanced_info %}
 $('.service_send').click(function(){
     const imei = $(this).val();
-    const code = $(this).siblings()[0].val();
-    $(this).siblings()[0].val("");
-    console.log(code);
+    let input_field = $(this).siblings()[0];
+    const code = $(input_field).val();
+    $(input_field).val("");
     let classes = $(this).prop("classList");
-    let field_type = "";
-    if (classes.indexOf(" tl ") !== -1)
+    if (classes["value"].indexOf(" tl ") !== -1)
         field_type = "tl";
-    else if (classes.indexOf(" bk ") !== -1)
+    else if (classes["value"].indexOf(" bk ") !== -1)
         field_type = "bk"
-    else if (classes.indexOf(" rb ") !== -1)
+    else if (classes["value"].indexOf(" rb ") !== -1)
         field_type = "rb"
     $(this).prop("disabled", true);
     $.ajax(
@@ -274,17 +306,63 @@ $('.service_send').click(function(){
              'code': code,
              'field_type': field_type,
              'csrfmiddlewaretoken': '{{ csrf_token }}',
-        },
-        success: function( data )
-        {
-
         }
     });
 });
 
-function enable_buttons(){
+$('.outlet_pressure_send').click(function(){
+    const imei = $(this).val();
+    let input_field = $(this).siblings()[0];
+    const pressure = $(input_field).val();
+    $(this).prop("disabled", true);
+        $.ajax(
+    {
+        type:"POST",
+        url: "installations/set_pressure_target",
+        data:{
+             'imei': imei,
+             'pressure_target': pressure,
+             'csrfmiddlewaretoken': '{{ csrf_token }}',
+        }
+    });
+});
 
 
+{% endif %}
+
+function renderTimeLimitField(prefix, needsService, imei){
+    if (needsService) {
+        $("#" + imei + " ." + prefix + "_service_text").html('<span class="text-danger">RAGGIUNTO</span>');
+        // We need to show the reset button if it exists. (It exists only if logged as admin)
+         if ($('#' + imei + ' .reset_button').length > 0) {
+            $('#' + imei + ' .' + prefix + '_service .reset_button').show();
+         }
+    } else {
+        $("#" + imei + " ." + prefix + "_service_text").html('<span class="text-success">NON RAGGIUNTO</span>');
+        if ($('#' + imei + ' .reset_button').length > 0) {
+            $('#' + imei + ' .' + prefix + '_service .reset_button').hide();
+         }
+    }
+}
+
+function enable_buttons(imei){
+    $.ajax(
+    {
+        type:"POST",
+        url: "installations/command_pending",
+        data:{
+             'csrfmiddlewaretoken': '{{ csrf_token }}',
+             'imei': imei
+        },
+        success: function( data )
+        {
+            if (data["command_pending"]) {
+                $('#' + imei + ' button').prop("disabled", true);
+            } else {
+                $('#' + imei + ' button').prop("disabled", false);
+            }
+        }
+    });
 }
 
 function update_data(){
@@ -297,15 +375,73 @@ function update_data(){
         },
         success: function( data )
         {
-            const installations = JSON.parse(data)
-            for (const installation in installations) {
 
+            for (let installation of data) {
+                installation = installation["fields"];
+                let imei = installation["imei"];
+                if (installation["online"]) {
+                    $('#' + imei + ' .box_online').html('<span class="text-success">ONLINE</span>');
+                } else {
+                    $('#' + imei + ' .box_online').html('<span class="text-danger">OFFLINE</span>');
+                }
+
+                $('#' + imei + ' .box_inlet_pressure').html('<b>' + installation["inlet_pressure"] + ' Bar</b>');
+
+                $('#' + imei + ' .box_inlet_temperature').html('<b>' + installation["inlet_temperature"] + ' °C</b>');
+
+                $('#' + imei + ' .box_outlet_pressure').html('<b>' + installation["outlet_pressure"] + ' Bar</b>');
+
+                if ($('#' + imei + ' .outlet_pressure_send').length > 0) {
+                    if (!$('#' + imei + ' .outlet_pressure_send_input').is(':focus') &&
+                        !$('#' + imei + ' .outlet_pressure_send_input').is(':disabled')) {
+                        // If the input element exists and is not focused
+                        $('#' + imei + ' .outlet_pressure_send_input').val(installation["outlet_pressure_target"]);
+                    } else {
+                        // Cannot update, element is focused
+                    }
+                } else {
+                    $('#' + imei + ' .box_outlet_pressure_target').html('<b>' + installation["outlet_pressure_target"] + ' Bar</b>');
+                }
+
+                $('#' + imei + ' .box_work_time').html('<b>' + installation["working_hours_counter"] +
+                                                          'h' + installation["working_minutes_counter"] + 'm</b>');
+
+                if (installation["anti_drip"]){
+                    $('#' + imei + ' .box_anti_drip').html('<span class="text-danger">ON</span>');
+                } else {
+                    $('#' + imei + ' .box_anti_drip').html('<span class="text-success">OFF</span>');
+                }
+
+                renderTimeLimitField("tl", installation["tl_service"], imei);
+                renderTimeLimitField("bk", installation["bk_service"], imei);
+                renderTimeLimitField("rb", installation["rb_service"], imei);
+
+                if (installation["alarms"] == "NESSUNO") {
+                    $('#' + imei + ' .box_alarms').html('<span class="text-success">NESSUNO</span>');
+                } else {
+                    $('#' + imei + ' .box_alarms').html('<span class="text-danger">' + installation["alarms"] + '</span>');
+                }
+
+                if (installation["running"]){
+                     $('#' + imei + ' .box_state').html('<span class="text-success">IN FUNZIONE</span>');
+                } else {
+                    $('#' + imei + ' .box_state').html('<span class="text-danger">FERMO</span>');
+                }
+
+                if (installation["run"]) {
+                    $('#' + imei + ' .runb').removeClass('runb btn-success').addClass('stopb btn-danger').html('STOP');
+                } else {
+                    $('#' + imei + ' .stopb').removeClass('stopb btn-danger').addClass('runb btn-success').html('RUN');
+                }
+
+                enable_buttons(imei);
             }
         }
-    })
-    enable_buttons()
+    });
 }
 
-setInterval(update_data, 1500);
+// Initial request and timed updater
+update_data();
+setInterval(update_data, 900);
 </script>
 {% endblock %}

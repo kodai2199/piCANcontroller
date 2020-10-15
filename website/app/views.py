@@ -1,6 +1,7 @@
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User, Group
+from django.core.validators import validate_integer
 from django.contrib.auth.decorators import login_required
 import json
 from django.core import serializers
@@ -19,11 +20,12 @@ def parse_alarms(installations):
         for alarm_id in alarms:
             counter += 1
             if counter != 1:
-                alarms_strings[i.id] += " ,"
+                alarms_strings[i.id] += ", "
             alarms_strings[i.id] += f"#{alarm_id}"
         if counter == 0:
             alarms_strings[i.id] += "NESSUNO"
     return alarms_strings
+
 
 @login_required
 def dashboard(request):
@@ -46,7 +48,6 @@ def dashboard(request):
 
 @login_required
 def toggle_installation(request):
-    # Authentication is required to send a command
     if request.user.is_authenticated and request.method == "POST":
         imei = request.POST.get("imei", '')
         command = request.POST.get("command", '')
@@ -71,9 +72,7 @@ def toggle_installation(request):
 
 @login_required
 def reset_time_limit(request):
-    # Authentication is required to send a command
     if request.user.is_authenticated and request.method == "POST":
-        # check that the user is an administrator
         if request.user.groups.filter(name="admin").exists():
             imei = request.POST.get("imei", '')
             code = request.POST.get("code", '')
@@ -100,10 +99,51 @@ def reset_time_limit(request):
 
 
 @login_required
+def set_pressure_target(request):
+    if request.user.is_authenticated and request.method == "POST":
+        if request.user.groups.filter(name="admin").exists():
+            imei = request.POST.get("imei", '')
+            pressure_target = request.POST.get("pressure_target", '')
+            command_queue = Command.objects.filter(imei=imei)
+            if command_queue.count() >= 1:
+                return HttpResponse('There already is a command being executed for this installation.')
+            try:
+                validate_integer(pressure_target)
+                c = Command(imei=imei, command_string=f"SET_PRESSURE_TARGET: {pressure_target}")
+                c.save()
+                return HttpResponse('success')
+            except ValidationError:
+                return HttpResponse('There is already a command pending for the device');
+        else:
+            return HttpResponse('Insufficient permissions')
+
+
+@login_required
 def update_data(request):
     # Authentication is required to send a command
     if request.user.is_authenticated and request.method == "POST":
         installations = Installation.objects.all()
         alarms_strings = parse_alarms(installations)
+        for i in installations:
+            i.alarms = alarms_strings[i.id]
+            command_queue = Command.objects.filter(imei=i.imei)
+            if command_queue.count() >= 1:
+                i.command_pending = True
+            else:
+                i.command_pending = False
         installations_json = serializers.serialize("json", installations)
         return HttpResponse(installations_json, content_type='application/json')
+
+
+@login_required
+def command_pending(request):
+    if request.user.is_authenticated and request.method == "POST":
+        imei = request.POST.get("imei", '')
+        response = {}
+        command_queue = Command.objects.filter(imei=imei)
+        if command_queue.count() >= 1:
+            response["command_pending"] = True
+        else:
+            response["command_pending"] = False
+        response_json = json.dumps(response)
+        return HttpResponse(response_json, content_type='application/json')
