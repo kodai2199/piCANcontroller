@@ -8,17 +8,14 @@ class Installation(models.Model):
 
     Questa classe definisce un modello per un Impianto.
     """
-
-    """
-    Fields
-    """
     installation_code = models.CharField(help_text='Installation Code', max_length=255, default="default")
     imei = models.CharField(unique=True, help_text="IMEI Code", max_length=255)
     online = models.BooleanField(help_text="Online state", default=False)
     inlet_pressure = models.IntegerField(help_text="Inlet pressure (Bar)", null=False, default=0)
     inlet_temperature = models.IntegerField(help_text="Inlet temperature (°C)", null=False, blank=True, default=0)
     outlet_pressure = models.IntegerField(help_text="Outlet pressure (Bar)", null=False, default=0)
-    outlet_pressure_target = models.IntegerField(help_text="Target pressure (Bar) for the output", null=False, default=0)
+    outlet_pressure_target = models.IntegerField(help_text="Target pressure (Bar) for the output",
+                                                 null=False, default=0)
     working_hours_counter = models.IntegerField(help_text="Total working hours", null=False, default=0)
     working_minutes_counter = models.IntegerField(help_text="Working minutes", null=False, default=0)
     anti_drip = models.BooleanField(help_text="Anti-drip", default=False)
@@ -26,11 +23,9 @@ class Installation(models.Model):
     alarms = models.CharField(help_text="JSON containing CANbus IDs of the nodes in an alarm state", default="[]",
                               null=False, max_length=255)
     speed = models.IntegerField(help_text="Speed (rpm)", default=0, null=False)
-    # Meaning not yet sure...
     bk_service = models.BooleanField(help_text="Backup service", default=False)
     tl_service = models.BooleanField(help_text="Time limit service", default=False)
     rb_service = models.BooleanField(help_text="RB service", default=False)
-
     run = models.BooleanField(help_text="Running command", default=False)
     running = models.BooleanField(help_text="Running state", default=False)
 

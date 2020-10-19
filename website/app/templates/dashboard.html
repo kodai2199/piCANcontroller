@@ -17,7 +17,7 @@
                 <p class="card-text">
                 <table class="table table-borderless table-striped">
                     <tr>
-                        <td>Installation_code:</td>
+                        <td>Codice impianto:</td>
                         <td><b>{{i.installation_code}}</b></td>
                     </tr>
                     <tr>
@@ -391,7 +391,11 @@ function update_data(){
                     $('#' + imei + ' .box_online').html('<span class="text-danger">OFFLINE</span>');
                 }
 
-                $('#' + imei + ' .box_inlet_pressure').html('<b>' + installation["inlet_pressure"] + ' Bar</b>');
+                if (installation["inlet_pressure"] === 0){
+                    $('#' + imei + ' .box_inlet_pressure').html('<b><span class="text-danger">PROBLEMATICA</span></b>');
+                } else {
+                    $('#' + imei + ' .box_inlet_pressure').html('<b><span class="text-success">BUONA</span></b>');
+                }
 
                 if (installation["inlet_temperature"] === 0){
                     $('#' + imei + ' .box_inlet_temperature').html('<b><span class="text-danger">PROBLEMATICA</span></b>');
