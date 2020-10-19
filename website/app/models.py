@@ -12,7 +12,7 @@ class Installation(models.Model):
     """
     Fields
     """
-    installation_code = models.CharField(help_text='CPx Code', max_length=255, default="default")
+    installation_code = models.CharField(help_text='Installation Code', max_length=255, default="default")
     imei = models.CharField(unique=True, help_text="IMEI Code", max_length=255)
     online = models.BooleanField(help_text="Online state", default=False)
     inlet_pressure = models.IntegerField(help_text="Inlet pressure (Bar)", null=False, default=0)

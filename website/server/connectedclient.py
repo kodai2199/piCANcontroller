@@ -4,14 +4,41 @@ import time
 import json
 import logging
 import django
-# TODO IMPORTANT ===============
-# TODO Document properly all functions
+import socket as sk
 
 
 class ConnectedClient:
+    """
+    This class represents one of the connected RPis. Every RPi should
+    have an instance of ConnectedClient. A ConnectedClient object
+    takes a socket connection and the address of the RPi and manages
+    every communication with the RPi, from the identification to
+    command sending. Since many concurrent RPi will try to connect
+    it is best to launch a ConnectedClient instance in a separate
+    process, as no interaction with the parent process is needed.
 
-    def __init__(self, connection, address):
-        # Prepare django
+    Please note that this class relies on django's ORM to deal with
+    Installations and Commands.
+    """
+
+    def __init__(self, connection: sk.socket, address):
+        """
+        The constructor initializes all the variables and prepares the
+        django ORM, and the logger. Then, it asks the client to
+        identify itself. If it doesn't identify successfully then
+        a ConnectionError is raised, otherwise the installation is
+        initialized (and a record created if none was present with the
+        provided IMEI) and worker method is started.
+
+        When the worker method returns (mainly for connection errors),
+        the Installation is set as offline and the ConnectedClient
+        terminates.
+
+        :param connection: A socket object holding the TCP connection
+              with the RPi client.
+        :param address: The address of the RPi client as returned by
+            socket.accept()
+        """
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings")
         django.setup()
         from app.models import Installation, Command
@@ -20,6 +47,7 @@ class ConnectedClient:
         self.connection = connection
         self.address = address
         self.id = None
+        self.logger = logging.getLogger(f'{__name__}.{self.address}')
         self.is_command_server = False
         self.Installation = Installation
         self.Command = Command
@@ -28,7 +56,6 @@ class ConnectedClient:
         if not self.identify():
             raise ConnectionError()
 
-        # Run appropriate worker
         self.initialize_installation()
         self.raspberry_pi_worker()
         # If this point is reached, it means the RPi closed the
@@ -48,27 +75,39 @@ class ConnectedClient:
         """
         # Encode and send the message
         try:
-            print("Sending {} to {}".format(message, self.address))
+            self.logger.debug(f"Sending {message} to {self.address}")
             data = message.encode()
             self.connection.send(data)
         except ConnectionError:
-            print("Could not send data to {}".format(self.address))
+            self.logger.error(f"Could not send data to {self.address}")
             self.connection.close()
             raise ConnectionError()
         except:
-            logging.error("Critical error while sending data to {}".format(self.address))
+            self.logger.error(f"Critical error while sending data to {self.address}")
             self.connection.close()
             raise ConnectionError()
 
     def receive_thread(self, buffer_size, data):
-        # A simple wrapper for socket.recv to allow
-        # thread execution and exception silencing
+        """
+        This function is meant to be used as a separate thread, to
+        implement a reliable timeout for socket.recv. It just calls
+        socket.recv with the specified buffer_size and puts it
+        in to the first position of the given list. If an unknown
+        error happens, the connection is shut down.
+
+        :param buffer_size: The buffer size for the recv call. Usually
+            it's 1024 bytes.
+        :param data: A list. This needs to be a mutable object so
+            that it's synchronized with the parent thread, and it
+            can receive information.
+        :return: None
+        """
         try:
             data[0] = self.connection.recv(buffer_size)
         except ConnectionError or ConnectionAbortedError:
             pass
         except:
-            logging.error("Critical error while receiving data from {}".format(self.address))
+            self.logger.error(f"Critical error while receiving data from {self.address}")
             self.connection.close()
             raise ConnectionError()
 
@@ -90,12 +129,6 @@ class ConnectedClient:
                             necessary.
         :return:
         """
-        # In order to implement reliable timeout for socket.recv,
-        # the call is wrapped in a thread. If it doesn't return before
-        # the timeout mark, then the thread is terminated by
-        # closing the connection and the function returns.
-        # timeout = 0 means no timeout
-
         data = [None]
         rec_thread = Thread(target=self.receive_thread, args=(buffer_size, data))
         rec_thread.daemon = True
@@ -116,12 +149,12 @@ class ConnectedClient:
 
         data = data[0]
         if not data or data is None:
-            print("{} closed the connection or did not send anything before timeout".format(self.address))
+            self.logger.warning(f"{self.address} closed the connection or did not send anything before timeout")
             raise ConnectionAbortedError()
         else:
             # Data should be an array of bytes!
             message = data.decode("UTF-8")
-            print("{} sent {}".format(self.address, bytes(message, 'utf-8')))
+            self.logger.debug(f"{self.address} sent {bytes(message, 'utf-8')}")
             return message
 
     def identify(self):
@@ -139,7 +172,6 @@ class ConnectedClient:
         :return: True if client was successfully identified, False
                 otherwise.
         """
-
         if self.id is not None:
             return True
         # Send a "ID_SUPPLICANT" and use the reply to identify the client
@@ -149,18 +181,18 @@ class ConnectedClient:
             client_id = self.receive(2)
             if client_id.isdigit() and len(client_id) >= 15:
                 self.id = client_id
-                print("{} is a Raspberry Pi with IMEI {}.".format(self.address, self.id))
+                self.logger.info(f"{self.address} is a Raspberry Pi with IMEI {self.id}.")
             else:
-                logging.error("{} tried to identify with an invalid IMEI."
-                              " Closing connection".format(self.address))
-                raise PermissionError("{} tried to identify with an invalid IMEI."
-                                      " Closing connection".format(self.address))
+                self.logger.error(f"{self.address} tried to identify with an invalid IMEI."
+                                  " Closing connection")
+                raise PermissionError(f"{self.address} tried to identify with an invalid IMEI."
+                                      " Closing connection")
         except ConnectionError:
-            print("Could not identify {}.".format(self.address))
+            self.logger.warning(f"Could not identify {self.address}.")
             return False
         return True
 
-    def raspberry_pi_worker(self):
+    def raspberry_pi_worker(self) -> None:
         """
         Process that handles an alive connection with a Raspberry Pi.
         The process is a simple loop:
@@ -179,27 +211,14 @@ class ConnectedClient:
 
         :return:
         """
-        # Raspberry process
-        # If the client has been recognized to be a Raspberry Pi,
-        # a loop will start:
-        # a) The server sends "GET_INFO" and waits for the RPi
-        #    to send updated data about its installation. As soon as
-        #    the server receives that data, it will be used to update
-        #    the Installation model.
-
         while True:
-            # Phase a: Update informations about installation
+            # Phase a: Update information about installation
             try:
                 self.send("GET_INFO")
-
-                # Wait for the answer
                 info = self.receive(5)
-
                 # To reduce data usage, we will reply NO_UPDATE or NU (to save data) if
                 # the data sent on the last GET_INFO is still valid
-                if info == "NO_UPDATE" or info == "NU":
-                    time.sleep(1)
-                else:
+                if info != "NO_UPDATE" and info != "NU":
                     info = json.loads(info)
                     i = self.Installation.objects.get(imei=self.id)
                     # Only update elements that changed, and were
@@ -208,41 +227,40 @@ class ConnectedClient:
                         setattr(i, key, value)
                     i.save()
             except ConnectionError:
-                print("RPi {} did not reply to GET_INFO.".format(self.id))
+                self.logger.warning(f"RPi {self.id} did not reply to GET_INFO.")
                 break
             # Phase b) check if the database contains a command for
             # this RPi and execute it
             try:
-                print("Checking command queue for imei {}.".format(self.id))
+                self.logger.debug("Checking command queue for imei {}.".format(self.id))
                 matching_commands = self.Command.objects.filter(imei=self.id)
                 matching_commands_count = matching_commands.count()
 
                 # Command found
                 if matching_commands_count > 0:
-                    # Getting command
                     matching_command = self.Command.objects.get(imei=self.id)
-                    print(matching_command.command_string)
-
-                    # Sending command
+                    self.logger.info(matching_command.command_string)
                     self.send(matching_command.command_string)
-
-                    # Waiting for the reply
-                    # It may take some time for the raspberry Pi to
-                    # complete the command so more time will be left
                     message = self.receive(5)
                     if message == "OK":
-                        print("{} completed execution of {}".format(self.id, matching_command.command_string))
+                        self.logger.info(f"{self.id} completed execution of {matching_command.command_string}")
                         matching_command.delete()
-
                 else:
                     # If no commands are found, wait before checking
                     # again.
                     time.sleep(1)
             except ConnectionError:
-                print("RPi {} did not receive the last command sent or did not reply to it.".format(self.address))
+                self.logger.warning(f"RPi {self.address} did not receive the last command sent or did not reply to it.")
+                print(f"RPi {self.address} did not receive the last command sent or did not reply to it.")
                 break
 
-    def initialize_installation(self):
+    def initialize_installation(self) -> None:
+        """
+        Set the Installation with the given IMEI as online. If no
+        Installation with such IMEI exists, create a new one first.
+
+        :return: None
+        """
         # If the given ID (IMEI) exists in the database,
         # just set the Installation to appear as "online",
         # else create a new record.

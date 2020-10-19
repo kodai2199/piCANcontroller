@@ -17,7 +17,7 @@
                 <p class="card-text">
                 <table class="table table-borderless table-striped">
                     <tr>
-                        <td>CPx Code:</td>
+                        <td>Installation_code:</td>
                         <td><b>{{i.installation_code}}</b></td>
                     </tr>
                     <tr>
@@ -36,7 +36,13 @@
                         <td>Temperatura in ingresso:</td>
                         <td>
                             <div class="box_inlet_temperature">
-                                <b>{{i.inlet_temperature}} °C</b>
+                                <b>
+                                    {% if i.inlet_temperature %}
+                                        <span class="text-success">BUONA</span>
+                                    {% else %}
+                                        <span class="text-danger">PROBLEMATICA</span>
+                                    {% endif %}
+                                </b>
                             </div>
                         </td>
                     </tr>
@@ -44,7 +50,7 @@
                         <td>Pressione in uscita:</td>
                         <td>
                             <div class="box_outlet_pressure">
-                                <b>{{i.outlet_pressure}} Bar</b>
+                                <b>{% widthratio i.outlet_pressure 10 1%} Bar</b>
                             </div>
                         </td>
                     </tr>
@@ -387,13 +393,17 @@ function update_data(){
 
                 $('#' + imei + ' .box_inlet_pressure').html('<b>' + installation["inlet_pressure"] + ' Bar</b>');
 
-                $('#' + imei + ' .box_inlet_temperature').html('<b>' + installation["inlet_temperature"] + ' °C</b>');
+                if (installation["inlet_temperature"] === 0){
+                    $('#' + imei + ' .box_inlet_temperature').html('<b><span class="text-danger">PROBLEMATICA</span></b>');
+                } else {
+                    $('#' + imei + ' .box_inlet_temperature').html('<b><span class="text-success">BUONA</span></b>');
+                }
 
-                $('#' + imei + ' .box_outlet_pressure').html('<b>' + installation["outlet_pressure"] + ' Bar</b>');
+                $('#' + imei + ' .box_outlet_pressure').html('<b>' + installation["outlet_pressure"]/10 + ' Bar</b>');
 
                 if ($('#' + imei + ' .outlet_pressure_send').length > 0) {
                     if (!$('#' + imei + ' .outlet_pressure_send_input').is(':focus') &&
-                        !$('#' + imei + ' .outlet_pressure_send_input').is(':disabled')) {
+                        !$('#' + imei + ' .outlet_pressure_ send_input').is(':disabled')) {
                         // If the input element exists and is not focused
                         $('#' + imei + ' .outlet_pressure_send_input').val(installation["outlet_pressure_target"]);
                     } else {
