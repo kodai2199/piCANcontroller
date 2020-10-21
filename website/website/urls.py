@@ -18,8 +18,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
-import subprocess
-import sys
+from appsocketserver import AppSocketServer
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,11 +29,7 @@ urlpatterns = [
 # To serve also static files like CSS, Js...
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-# TODO: this should be started only if Django server is started
-filename = "appsocketserver.py"
-if sys.platform == "linux":
-    process = subprocess.Popen(["python3", filename])
-else:
-    process = subprocess.Popen(["python", filename])
-
-
+# Start
+socketServer = AppSocketServer()
+socketServer.daemon = True
+socketServer.start()

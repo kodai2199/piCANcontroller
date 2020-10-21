@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from multiprocessing import Process
+from threading import Thread
 import socket as sk
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +10,7 @@ import os
 import django
 
 
-class AppSocketServer:
+class AppSocketServer(Thread):
     """
     Terminology:
         - <CODE>: a simple string to identify the client
@@ -20,7 +21,9 @@ class AppSocketServer:
 
     This class allows communication between the django server and the
     Raspberry Pi clients. The basic idea is that this server will
-    always be running. As soon as Raspberry Pis (RPis) are connected
+    always be running as a separate thread.
+
+    As soon as Raspberry Pis (RPis) are connected
     to the Internet, they must establish a connection with this
     server. Since the RPis may not have a public IP address, they
     need to start the connection, and the connection must be always
@@ -54,29 +57,30 @@ class AppSocketServer:
     This is implemented with the help of ConnectedClient.
     """
 
-    HOST = ""
-    PORT = 37863
-
-    def __init__(self, host=None, port=None):
+    def __init__(self, host="", port=37863):
         """
         The constructor intializes all the variables, including the
-        logger, and sets to False all the "online" fields in every
-        Installation before start listening for connections.
+        logger.
 
         :param host:
         :param port:
         """
+        super(AppSocketServer, self).__init__()
+        now = datetime.now()
+        directory = Path("logs/")
+        filename = now.strftime("%Y-%m-%d_%H-%M-%S")
+        filename += "_server.log"
+        filename = directory / filename
+        logging.basicConfig(level=logging.DEBUG, filename=filename,
+                            format="[%(asctime)s][%(levelname)s] %(message)s")
         self.logger = logging.getLogger(__name__)
         self.logger.debug("Logger ready")
         self.logger.info('Socket server started')
         print("Socket server started")
 
         # Configure parameters
-        self.HOST = host or self.HOST
-        self.PORT = port or self.PORT
-
-        self.set_all_offline()
-        self.listen_for_connections()
+        self.host = host
+        self.port = port
 
     def listen_for_connections(self) -> None:
         """
@@ -89,7 +93,7 @@ class AppSocketServer:
         :return: None
         """
         with sk.socket(sk.AF_INET, sk.SOCK_STREAM) as s:
-            s.bind((self.HOST, self.PORT))
+            s.bind((self.host, self.port))
             while True:
                 s.listen()
                 self.logger.info("Socket server listening for a new connection")
@@ -111,6 +115,10 @@ class AppSocketServer:
         """
         # Set all the installations as "offline" to ensure
         # a correct startup
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings")
+        django.setup()
+        from app.models import Installation
+
         matching_count = Installation.objects.filter(online=True).count()
         if matching_count > 0:
             i = Installation.objects.get(online=True)
@@ -137,21 +145,11 @@ class AppSocketServer:
             return
         self.logger.debug("Process for {} terminating.".format(address))
 
-
-if __name__ == "__main__":
-    """
-    Socket server is meant to be fired as a separate script. In this
-    case, the logger is configured, django module loaded and the 
-    AppSocketServer starts.
-    """
-    now = datetime.now()
-    directory = Path("logs/")
-    filename = now.strftime("%Y-%m-%d_%H-%M-%S")
-    filename += "_server.log"
-    filename = directory / filename
-    logging.basicConfig(level=logging.DEBUG, filename=filename, format="[%(asctime)s][%(levelname)s] %(message)s")
-
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings")
-    django.setup()
-    from app.models import Installation
-    ss = AppSocketServer()
+    def run(self) -> None:
+        """
+        To be called via Process.start(). Sets all the Installation
+        as offline and start listening for connections.
+        :return:
+        """
+        self.set_all_offline()
+        self.listen_for_connections()
